@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="Checklist tabungan, dana darurat, dan investasi mingguan.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Rutinitas Saya</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#151f30;--muted:#9eacc0;--accent:#65d6a6;--line:#2a3850}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#101b2d,#080d16);color:#f4f7fb;font:16px system-ui,-apple-system,Segoe UI,sans-serif;padding:22px 16px 40px}
+main{max-width:620px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+h1{font-size:25px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:5px}
+.pill{border:1px solid var(--line);border-radius:99px;padding:7px 11px;color:var(--accent);font-size:12px;white-space:nowrap}
+.card{background:rgba(21,31,48,.96);border:1px solid var(--line);border-radius:18px;padding:17px;margin:14px 0}
+h2{font-size:17px;margin:0 0 5px}.hint{font-size:12px;color:var(--muted);margin-bottom:13px}
+.task{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.task:last-child{border-bottom:0}.task input{width:21px;height:21px;accent-color:var(--accent);flex:none}
+.task span{flex:1}.task small{color:var(--muted);font-size:12px}
+.day{margin:13px 0 5px;font-weight:700;color:#dbe6f5}
+.progress{height:8px;background:#263247;border-radius:9px;overflow:hidden;margin:12px 0 5px}.bar{height:100%;width:0;background:var(--accent);transition:width .2s}
+.stats{display:flex;justify-content:space-between;color:var(--muted);font-size:12px}
+button{background:#26364d;border:1px solid #3a4d68;color:#fff;padding:10px 13px;border-radius:11px;font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin:16px 3px}
+</style>
+</head>
+<body>
+<main>
+ <div class="top"><div><h1>Rutinitas Saya</h1><div class="sub" id="weekLabel">Checklist tabungan & investasi</div></div><div class="pill">RESET SENIN</div></div>
+ <section class="card">
+  <h2>Target minggu ini</h2><div class="hint">Centang setiap selesai. Progres dihitung otomatis.</div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+  <div class="stats"><span id="count">0 dari 21 selesai</span><span id="percent">0%</span></div>
+ </section>
+ <section class="card">
+  <h2>Target sekali saja</h2><div class="hint">Tidak ikut di-reset setiap minggu.</div>
+  <label class="task"><input type="checkbox" id="debt"><span>Lunasi tanggungan</span><small>Rp150.000</small></label>
+ </section>
+ <section class="card">
+  <h2>Checklist harian</h2><div class="hint">Centang setelah menyisihkan uang pada hari tersebut.</div>
+  <div id="days"></div>
+  <div class="actions"><button id="clearWeek">Kosongkan minggu ini</button><button id="export">Salin ringkasan</button></div>
+ </section>
+ <p class="note">Data tersimpan di browser HP ini. Checklist mingguan berganti otomatis setiap Senin saat halaman dibuka. Target tanggungan Rp150.000 tetap tersimpan sampai dicentang selesai. Jangan hapus data browser jika ingin mempertahankan progres.</p>
+</main>
+<script>
+const days=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+const tasks=[['Tabung harian','Rp10.000'],['Dana darurat','Rp2.000'],['Investasi crypto','Rp10.000']];
+const key='rutinitas-mingguan-pwa-v1';
+function mondayKey(d=new Date()){let x=new Date(d);x.setHours(0,0,0,0);let day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
+function load(){try{return JSON.parse(localStorage.getItem(key))||{}}catch(e){return {}}}
+let data=load(),wk=mondayKey();
+if(data.week!==wk){data.week=wk;data.checked={};save()}
+function save(){localStorage.setItem(key,JSON.stringify(data))}
+const daysEl=document.getElementById('days');
+days.forEach((day,di)=>{
+ let heading=document.createElement('div');heading.className='day';heading.textContent=day;daysEl.appendChild(heading);
+ tasks.forEach((task,ti)=>{
+  let id=di+'-'+ti,label=document.createElement('label');label.className='task';
+  let cb=document.createElement('input');cb.type='checkbox';cb.checked=!!data.checked[id];
+  let name=document.createElement('span');name.textContent=task[0];
+  let amount=document.createElement('small');amount.textContent=task[1];
+  cb.addEventListener('change',()=>{data.checked[id]=cb.checked;save();update()});
+  label.append(cb,name,amount);daysEl.appendChild(label);
+ });
+});
+const debt=document.getElementById('debt');debt.checked=!!data.debt;
+debt.addEventListener('change',()=>{data.debt=debt.checked;save()});
+function update(){let n=Object.values(data.checked||{}).filter(Boolean).length;document.getElementById('count').textContent=n+' dari 21 selesai';document.getElementById('percent').textContent=Math.round(n/21*100)+'%';document.getElementById('bar').style.width=(n/21*100)+'%'}
+document.getElementById('clearWeek').addEventListener('click',()=>{if(confirm('Kosongkan semua ceklis minggu ini?')){data.checked={};save();location.reload()}});
+document.getElementById('export').addEventListener('click',()=>{let n=Object.values(data.checked||{}).filter(Boolean).length;let s='Rutinitas minggu '+wk+'\n'+days.map((d,i)=>d+': '+tasks.map((t,j)=>(data.checked[i+'-'+j]?'[x] ':'[ ] ')+t[0]+' '+t[1]).join(' | ')).join('\n')+'\nProgres: '+n+'/21\nTanggungan Rp150.000: '+(data.debt?'selesai':'belum selesai');if(navigator.clipboard)navigator.clipboard.writeText(s).then(()=>alert('Ringkasan disalin.'));else alert(s)});
+document.getElementById('weekLabel').textContent='Minggu dimulai '+new Date(wk+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+update();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+</script>
+</body></html>
